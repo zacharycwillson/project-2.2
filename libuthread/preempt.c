@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L  // for sigaction, setitimer
-
+#include <stdio.h>  
+#include <signal.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>

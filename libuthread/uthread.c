@@ -11,8 +11,8 @@
 #include "queue.h"
 
 //Define global varaibles
-extern queue_t         scheduler_queue;
-extern struct uthread_tcb *current_thread;
+queue_t scheduler_queue;
+struct uthread_tcb *current_thread;
 static int next_thread_ID = 0; //Assign thread ID values in incrementing order
 
 //Define all possible thread states for uthread_state_t enumeration
