@@ -170,12 +170,13 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
 void uthread_block(void)
 {
-	/* TODO Phase 3 */
+    struct uthread_tcb *me   = uthread_current();
+    struct uthread_tcb *next = NULL;
+    queue_dequeue(ready_queue, (void**)&next);
+    current = next;
+    uthread_ctx_switch(&me->context, &next->context);
 }
-
 void uthread_unblock(struct uthread_tcb *uthread)
 {
-	/* TODO Phase 3 */
-	(void)uthread; 
+    queue_enqueue(ready_queue, uthread);
 }
-
