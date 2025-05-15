@@ -1,23 +1,20 @@
 #include <stddef.h>
 #include <stdlib.h>
-
 #include "queue.h"
-#include "private.h"
+#include "private.h" 
 #include "sem.h"
 
-struct semaphore {
-    size_t          count; 
-    queue_t         waiters;
-};
 
-#define RETURN_IF(cond, val) do { if (cond) { return (val); } } while (0)
+struct semaphore {
+    size_t  count;     
+    queue_t waiters;   
+};
 
 sem_t sem_create(size_t count)
 {
-    struct semaphore *sem = malloc(sizeof(*sem));
+    sem_t sem = (sem_t)malloc(sizeof(*sem));
     if (!sem)
         return NULL;
-
 
     sem->waiters = queue_create();
     if (!sem->waiters) {
@@ -25,36 +22,49 @@ sem_t sem_create(size_t count)
         return NULL;
     }
 
-
     sem->count = count;
     return sem;
 }
 
 int sem_destroy(sem_t sem)
 {
-    RETURN_IF(!sem, -1);
-
-    if (!queue_isempty(sem->waiters))
+    if (!sem)
         return -1;
+
+    preempt_disable();
+
+
+    if (queue_length(sem->waiters) != 0) {
+        preempt_enable();
+        return -1;
+    }
 
     queue_destroy(sem->waiters);
     free(sem);
+
+    preempt_enable();
     return 0;
 }
 
 int sem_down(sem_t sem)
 {
-    RETURN_IF(!sem, -1);
+    if (!sem)
+        return -1;
 
     preempt_disable();
 
     while (sem->count == 0) {
 
-        queue_enqueue(sem->waiters, uthread_current());
+        uthread_t self = uthread_current();
+        queue_enqueue(sem->waiters, self);
         uthread_block();
+
+        preempt_enable();
+        preempt_disable();
     }
 
-    sem->count--;
+
+    sem->count -= 1;
 
     preempt_enable();
     return 0;
@@ -62,16 +72,17 @@ int sem_down(sem_t sem)
 
 int sem_up(sem_t sem)
 {
-    RETURN_IF(!sem, -1);
+    if (!sem)
+        return -1;
 
     preempt_disable();
 
-    if (!queue_isempty(sem->waiters)) {
-        struct uthread_tcb *tcb;
-        queue_dequeue(sem->waiters, (void**)&tcb);
-        uthread_unblock(tcb);
-    } else {
-        sem->count++;
+    sem->count += 1;
+    
+    if (queue_length(sem->waiters) > 0) {
+        uthread_t next;
+        queue_dequeue(sem->waiters, (void **)&next);
+        uthread_unblock(next);
     }
 
     preempt_enable();
