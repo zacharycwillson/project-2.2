@@ -11,8 +11,8 @@
 #include "queue.h"
 
 //Define global varaibles
-static queue_t scheduler_queue; //FIFO queue utalized by scheduler - processed threads are recheduled to the back of queue round-robin style
-static struct uthread_tcb *current_thread = NULL; // Pointer to the thread control block of thread 
+extern queue_t         scheduler_queue;
+extern struct uthread_tcb *current_thread;
 static int next_thread_ID = 0; //Assign thread ID values in incrementing order
 
 //Define all possible thread states for uthread_state_t enumeration
@@ -172,11 +172,20 @@ void uthread_block(void)
 {
     struct uthread_tcb *me   = uthread_current();
     struct uthread_tcb *next = NULL;
-    queue_dequeue(ready_queue, (void**)&next);
-    current = next;
+
+    me->state = BLOCKED;
+    if (queue_dequeue(scheduler_queue, (void**)&next) < 0) {
+        exit(1);
+    }
+    next->state     = RUNNING;
+    current_thread  = next;
     uthread_ctx_switch(&me->context, &next->context);
 }
+
 void uthread_unblock(struct uthread_tcb *uthread)
 {
-    queue_enqueue(ready_queue, uthread);
+    if (uthread->state == BLOCKED) {
+        uthread->state = READY;
+        queue_enqueue(scheduler_queue, uthread);
+    }
 }
