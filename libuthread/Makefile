@@ -4,7 +4,7 @@ lib := libuthread.a
 all: $(lib)
 
 # Sources, objects, and dependency files
-srcs := queue.c uthread.c context.c preempt.c
+srcs := queue.c uthread.c context.c preempt.c sem.c
 objs := $(srcs:.c=.o)
 deps := $(objs:.o=.d)
 
