@@ -14,7 +14,7 @@ AR       := ar
 ARFLAGS  := rcs
 
 # Compiler flags
-CFLAGS   := -Wall -Wextra -Werror -MMD -MP
+CFLAGS   := -Wall -Wextra -Werror -MMD -MP -D_XOPEN_SOURCE=600
 
 # Archive rule
 $(lib): $(objs)
