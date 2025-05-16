@@ -32,7 +32,7 @@ int main(void) {
         perror("uthread_create");
         exit(1);
     }
-    uthread_run(true);
+    uthread_run(true, 0);
 
     putchar('\n');
     return 0;
