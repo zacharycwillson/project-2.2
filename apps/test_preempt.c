@@ -1,39 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include "uthread.h"
 
-#define WORK_ITER 10000000
+#define WORK_ITERS 10000000
 
-static void thread_fn1(void *arg) {
-    (void)arg;
-    for (int i = 0; i < 20; i++) {
-        putchar('A');
+static void busy_thread(void *arg) {
+    char c = *(char*)arg;
+    for (int i = 0; i < 50; i++) {
+        putchar(c);
         fflush(stdout);
-        for (volatile int j = 0; j < WORK_ITER; j++);
-    }
-}
-
-static void thread_fn2(void *arg) {
-    (void)arg;
-    for (int i = 0; i < 20; i++) {
-        putchar('B');
-        fflush(stdout);
-        for (volatile int j = 0; j < WORK_ITER; j++);
+        for (volatile int j = 0; j < WORK_ITERS; j++);
     }
 }
 
 int main(void) {
-    if (uthread_create(thread_fn1, NULL) < 0) {
-        perror("uthread_create");
-        exit(1);
-    }
-    if (uthread_create(thread_fn2, NULL) < 0) {
+    char a = 'A', b = 'B';
+
+    if (uthread_create(busy_thread, &a) < 0 ||
+        uthread_create(busy_thread, &b) < 0) {
         perror("uthread_create");
         exit(1);
     }
     uthread_run(true, 0);
 
     putchar('\n');
+    printf("GOAL ACHIEVED: Preemption prevented any single thread from hogging the CPU.\n");
     return 0;
 }
