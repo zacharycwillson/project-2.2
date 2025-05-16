@@ -1,29 +1,42 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "uthread.h"
 
-#define WORK_ITERS 10000000
+#define WORK_ITER 10000000
 
-static void busy_thread(void *arg) {
-    char c = *(char*)arg;
-    for (int i = 0; i < 50; i++) {
-        putchar(c);
-        fflush(stdout);
-        for (volatile int j = 0; j < WORK_ITERS; j++);
-    }
-}
+/* forward declarations */
+static void thread_fn1(void *arg);
+static void thread_fn2(void *arg);
 
 int main(void) {
-    char a = 'A', b = 'B';
+    /* start with thread_fn1; it will spawn thread_fn2 */
+    (void)uthread_run(true, thread_fn1, NULL);
+    putchar('\n');
+    return 0;
+}
 
-    if (uthread_create(busy_thread, &a) < 0 ||
-        uthread_create(busy_thread, &b) < 0) {
+static void thread_fn1(void *arg) {
+    (void)arg;
+    /* spawn the B‐printer under the new scheduler queue */
+    if (uthread_create(thread_fn2, NULL) < 0) {
         perror("uthread_create");
         exit(1);
     }
-    uthread_run(true, 0);
+    for (int i = 0; i < 20; i++) {
+        putchar('A');
+        fflush(stdout);
+        for (volatile int j = 0; j < WORK_ITER; j++);
+    }
+    uthread_exit();
+}
 
-    putchar('\n');
-    printf("GOAL ACHIEVED: Preemption prevented any single thread from hogging the CPU.\n");
-    return 0;
+static void thread_fn2(void *arg) {
+    (void)arg;
+    for (int i = 0; i < 20; i++) {
+        putchar('B');
+        fflush(stdout);
+        for (volatile int j = 0; j < WORK_ITER; j++);
+    }
+    uthread_exit();
 }
