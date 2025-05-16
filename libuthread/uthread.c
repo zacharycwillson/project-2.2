@@ -14,6 +14,7 @@
 queue_t scheduler_queue;
 struct uthread_tcb *current_thread;
 static int next_thread_ID = 0; //Assign thread ID values in incrementing order
+static struct uthread_tcb *idle_tcb = NULL;
 
 //Define all possible thread states for uthread_state_t enumeration
 typedef enum 
@@ -74,7 +75,7 @@ void uthread_exit(void)
 	if (dequeue_error == -1) 
 	{
 		preempt_stop();
-		exit(0);
+		uthread_ctx_switch(&current_thread->context, &idle_tcb->context);
 	}
 	//Switch to next thread context
 	next_thread->state = RUNNING;
@@ -133,6 +134,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 	getcontext(&idle.context);
 	idle.state = RUNNING;
 	current_thread = &idle;
+	idle_tcb = &idle;
 	//Bootstrap first thread and validate
 	int create_error = uthread_create(func, arg);
 	if (create_error == -1) 
